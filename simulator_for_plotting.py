@@ -47,14 +47,14 @@ class Artifact:
 
     def upgrade(self):
         if self.level != 20:
-            roll = choice(possible_rolls)
+            roll = np.random.choice(possible_rolls)
             if self.threeliner:
                 self.substats[self.threeliner] = max_rolls[
                                                      self.threeliner] * roll
                 self.last_upgrade = self.threeliner
                 self.threeliner = 0
             else:
-                sub = choice(list(self.substats.keys()))
+                sub = np.random.choice(list(self.substats.keys()))
                 self.substats[sub] += max_rolls[sub] * roll
                 self.last_upgrade = sub
             self.level += 4
@@ -79,16 +79,16 @@ class ArtifactEncoder(json.JSONEncoder):
                 art.roll_value]
 
 
-artifact_types = ('Flower', 'Feather', 'Sands', 'Goblet', 'Circlet')
-sands_main_stats = ('HP%', 'ATK%', 'DEF%', 'ER%', 'EM')
-goblet_main_stats = ('Pyro DMG% Bonus', 'Hydro DMG% Bonus', 'Cryo DMG% Bonus',
+artifact_types = ['Flower', 'Feather', 'Sands', 'Goblet', 'Circlet']
+sands_main_stats = ['HP%', 'ATK%', 'DEF%', 'ER%', 'EM']
+goblet_main_stats = ['Pyro DMG% Bonus', 'Hydro DMG% Bonus', 'Cryo DMG% Bonus',
                      'Electro DMG% Bonus', 'Anemo DMG% Bonus',
                      'Geo DMG% Bonus', 'Physical DMG% Bonus',
-                     'Dendro DMG% Bonus', 'HP%', 'ATK%', 'DEF%', 'EM')
-circlet_main_stats = ('HP%', 'ATK%', 'DEF%', 'EM', 'Crit DMG%', 'Crit RATE%',
-                      'Healing Bonus')
-substats = ('HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'ER%', 'EM',
-            'Crit RATE%', 'Crit DMG%')
+                     'Dendro DMG% Bonus', 'HP%', 'ATK%', 'DEF%', 'EM']
+circlet_main_stats = ['HP%', 'ATK%', 'DEF%', 'EM', 'Crit DMG%', 'Crit RATE%',
+                      'Healing Bonus']
+substats = np.array(['HP', 'ATK', 'DEF', 'HP%', 'ATK%', 'DEF%', 'ER%', 'EM',
+            'Crit RATE%', 'Crit DMG%'])
 flower_stats = (717, 1530, 2342, 3155, 3967, 4780)
 feather_stats = (47, 100, 152, 205, 258, 311)
 hp_atk_dmg_stats = (7.0, 14.9, 22.8, 30.8, 38.7, 46.6)
@@ -112,11 +112,17 @@ max_rolls = {
 }
 possible_rolls = (0.7, 0.8, 0.9, 1.0)
 
-sands_main_stats_weights = (26.68, 26.66, 26.66, 10.0, 10.0)
-goblet_main_stats_weights = (5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 19.25,
-                             19.25, 19.0, 2.5)
-circlet_main_stats_weights = (22.0, 22.0, 22.0, 4.0, 10.0, 10.0, 10.0)
-substats_weights = (6, 6, 6, 4, 4, 4, 4, 4, 3, 3)
+sands_main_stats_weights = np.array([26.68, 26.66, 26.66, 10.0, 10.0])
+sands_main_stats_weights /= np.sum(sands_main_stats_weights)
+
+goblet_main_stats_weights = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 19.25,
+                                      19.25, 19.0, 2.5])
+goblet_main_stats_weights /= np.sum(goblet_main_stats_weights)
+
+circlet_main_stats_weights = np.array([22.0, 22.0, 22.0, 4.0, 10.0, 10.0, 10.0])
+circlet_main_stats_weights /= np.sum(circlet_main_stats_weights)
+
+substats_weights = np.array([6, 6, 6, 4, 4, 4, 4, 4, 3, 3])
 
 
 def take_input():
@@ -176,21 +182,21 @@ def load_data():
 
 
 def create_artifact(source):
-    type = choice(artifact_types)
+    type = np.random.choice(artifact_types)
     rv = 0
     if type == 'Flower':
         mainstat = 'HP'
     elif type == 'Feather':
         mainstat = 'ATK'
     elif type == 'Sands':
-        mainstat = choices(sands_main_stats,
-                           weights=sands_main_stats_weights)[0]
+        mainstat = np.random.choice(sands_main_stats,
+                                    p=sands_main_stats_weights)
     elif type == 'Goblet':
-        mainstat = choices(goblet_main_stats,
-                           weights=goblet_main_stats_weights)[0]
+        mainstat = np.random.choice(goblet_main_stats,
+                                    p=goblet_main_stats_weights)
     else:
-        mainstat = choices(circlet_main_stats,
-                           weights=circlet_main_stats_weights)[0]
+        mainstat = np.random.choice(circlet_main_stats,
+                                    p=circlet_main_stats_weights)
 
     if mainstat == 'HP':
         mainstat_value = [flower_stats, 0]
@@ -214,26 +220,32 @@ def create_artifact(source):
     else:
         mainstat_value = [crit_dmg_stats, 0]
 
-    fourliner_weights = (2, 8) if source == 'domain' else (34, 66)
-    fourliner = choices((1, 0), weights=fourliner_weights)[0]
+    fourliner_weights = [0.2, 0.8] if source == 'domain' else [0.34, 0.66]
+    fourliner = np.random.choice((1, 0), p=fourliner_weights)
     subs = {}
 
-    subs_pool = list(substats)
-    subs_weights = list(substats_weights)
-    if mainstat in subs_pool:
-        subs_weights.remove(subs_weights[subs_pool.index(mainstat)])
-        subs_pool.remove(mainstat)
+    subs_pool = substats
+    subs_weights = substats_weights
+    mainstat_index = np.where(subs_pool == mainstat)[0]
+
+    # Check if mainstat is in subs_pool
+    if len(mainstat_index) > 0:
+        mainstat_index = mainstat_index[0]  # Get the first index if mainstat occurs multiple times
+        subs_weights = np.delete(subs_weights, mainstat_index)
+        subs_pool = np.delete(subs_pool, mainstat_index)
 
     for _i in range(3 + fourliner):
-        roll = choice(possible_rolls)
-        sub = choices(subs_pool, weights=subs_weights)[0]
-        subs_weights.remove(subs_weights[subs_pool.index(sub)])
-        subs_pool.remove(sub)
+        roll = np.random.choice(possible_rolls)
+        probabilities = subs_weights / np.sum(subs_weights)
+        sub_index = np.random.choice(len(subs_pool), p=probabilities)
+        sub = subs_pool[sub_index]
+        subs_weights = np.delete(subs_weights, sub_index)
+        subs_pool = np.delete(subs_pool, sub_index)
         subs[sub] = max_rolls[sub] * roll
         rv += roll * 100
 
-    threeliner = choices(subs_pool,
-                         weights=subs_weights)[0] if not fourliner else 0
+    threeliner = np.random.choice(subs_pool,
+                                  p=subs_weights/np.sum(subs_weights)) if not fourliner else 0
 
     return Artifact(type, mainstat, mainstat_value, threeliner, subs, 0, "", rv)
 
@@ -278,7 +290,8 @@ def upgrade_to_max_tier(artifact, do_we_print=True):
             artifact.print_stats()
 
 
-def compare_to_highest_cv(artifact, fastest, slowest, days_list, artifact_list, day_number, artifact_number, cv_want, only_one):
+def compare_to_highest_cv(artifact, fastest, slowest, days_list, artifact_list, day_number, artifact_number, cv_want,
+                          only_one):
     flag_break = False  # I'm incredibly sorry, this is absolutely unreadable
     if artifact.cv() >= min(54.5, cv_want):
         days_list.append(day_number)
@@ -478,12 +491,12 @@ for i in range(sample_size):
         while resin and not flag:
             # print('domain run')
             resin -= 20
-            amount = choices((1, 2), weights=(93, 7))
-            # if amount[0] == 2:
+            amount = np.random.choice((1, 2), p=np.array([93, 7])/sum(np.array([93, 7])))
+            # if amount == 2:
             #     print('lucky!')
-            total_generated += amount[0]
-            inventory += amount[0]
-            for k in range(amount[0]):
+            total_generated += amount
+            inventory += amount
+            for k in range(amount):
                 art, highest = create_and_roll_artifact("domain", highest, cv_desired, day)
                 low, high, days_it_took_to_reach_desired_cv, artifacts_generated, flag = compare_to_highest_cv(art, low,
                                                                                                                high,
@@ -569,13 +582,13 @@ while True:
             continue
     else:
         cv_range = [0.0, cv_desired]
-    days_plot = days_for_plotting[max(int(cv_range[0] * 10), 0):min(int(cv_range[1] * 10 + 1), int(cv_desired * 10 + 1))]
+    days_plot = days_for_plotting[
+                max(int(cv_range[0] * 10), 0):min(int(cv_range[1] * 10 + 1), int(cv_desired * 10 + 1))]
     cv_plot = cv_for_plotting[max(int(cv_range[0] * 10), 0):min(int(cv_range[1] * 10 + 1), int(cv_desired * 10 + 1))]
     print()
     print('Values:', days_plot)
     print()
     plot_this(cv_plot, days_plot, cv_range, sample_size)
-
 
     print("Ok, here you go. This was also saved as a .png file.\n"
           "You can plot another graph now if you want.\n")
