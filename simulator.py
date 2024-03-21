@@ -1,6 +1,7 @@
 from random import choice, choices
 import time, json
 from operator import itemgetter
+import numpy as np
 
 
 class Artifact:
@@ -106,10 +107,18 @@ max_rolls = {
 }
 possible_rolls = (0.7, 0.8, 0.9, 1.0)
 
-sands_main_stats_weights = (26.68, 26.66, 26.66, 10.0, 10.0)
-goblet_main_stats_weights = (5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 19.25,
-                             19.25, 19.0, 2.5)
-circlet_main_stats_weights = (22.0, 22.0, 22.0, 4.0, 10.0, 10.0, 10.0)
+sands_main_stats_weights = np.array([26.68, 26.66, 26.66, 10.0, 10.0])
+randomized_big_sands = np.random.default_rng().choice(5, 1000000, p=sands_main_stats_weights/sum(sands_main_stats_weights))
+
+goblet_main_stats_weights = np.array([5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 5.0, 19.25, 19.25, 19.0, 2.5])
+randomized_big_goblets = np.random.default_rng().choice(12, 1000000, p=goblet_main_stats_weights/sum(goblet_main_stats_weights))
+
+circlet_main_stats_weights = np.array([22.0, 22.0, 22.0, 4.0, 10.0, 10.0, 10.0])
+randomized_big_circlets = np.random.default_rng().choice(7, 1000000, p=circlet_main_stats_weights/sum(circlet_main_stats_weights))
+
+randomized_big_domain = np.random.default_rng().choice(2, 1000000, p=[0.8, 0.2])
+randomized_big_strongbox_abyss = np.random.default_rng().choice(2, 1000000, p=[0.66, 0.34])
+
 substats_weights = (6, 6, 6, 4, 4, 4, 4, 4, 3, 3)
 
 
@@ -168,7 +177,7 @@ def load_data():
         return []
 
 
-def create_artifact(source):
+def create_artifact(source, num):
     type = choice(artifact_types)
     rv = 0
     if type == 'Flower':
@@ -176,14 +185,14 @@ def create_artifact(source):
     elif type == 'Feather':
         mainstat = 'ATK'
     elif type == 'Sands':
-        mainstat = choices(sands_main_stats,
-                           weights=sands_main_stats_weights)[0]
+        ind = randomized_big_sands[num]
+        mainstat = sands_main_stats[ind]
     elif type == 'Goblet':
-        mainstat = choices(goblet_main_stats,
-                           weights=goblet_main_stats_weights)[0]
+        ind = randomized_big_goblets[num]
+        mainstat = goblet_main_stats[ind]
     else:
-        mainstat = choices(circlet_main_stats,
-                           weights=circlet_main_stats_weights)[0]
+        ind = randomized_big_circlets[num]
+        mainstat = circlet_main_stats[ind]
 
     if mainstat == 'HP':
         mainstat_value = [flower_stats, 0]
@@ -206,8 +215,7 @@ def create_artifact(source):
         mainstat_value = [crit_rate_stats, 0]
     else:
         mainstat_value = [crit_dmg_stats, 0]
-    fourliner_weights = (2, 8) if source == 'domain' else (34, 66)
-    fourliner = choices((1, 0), weights=fourliner_weights)[0]
+    fourliner = randomized_big_domain[num] if source == 'domain' else randomized_big_strongbox_abyss[num]
     subs = {}
 
     subs_pool = list(substats)
@@ -230,8 +238,8 @@ def create_artifact(source):
     return Artifact(type, mainstat, mainstat_value, threeliner, subs, 0, "", rv)
 
 
-def create_and_roll_artifact(arti_source, highest_cv=0):
-    artifact = create_artifact(arti_source)
+def create_and_roll_artifact(arti_source, num, highest_cv=0):
+    artifact = create_artifact(arti_source, num)
     if not highest_cv:
         artifact.print_stats()
     for j in range(5):
@@ -416,7 +424,7 @@ while True:
                         inventory += 1
                         total_generated += 1
                         absolute_generated += 1
-                        art, highest = create_and_roll_artifact("abyss", highest)
+                        art, highest = create_and_roll_artifact("abyss", absolute_generated, highest)
                         low, high, days_it_took_to_reach_desired_cv, artifacts_generated, flag = compare_to_highest_cv(art, low, high,
                                                                                                                        days_it_took_to_reach_desired_cv, artifacts_generated,
                                                                                                                        day, total_generated, cv_desired, sample_size_is_one)
@@ -437,7 +445,7 @@ while True:
                     absolute_generated += amount[0]
                     inventory += amount[0]
                     for k in range(amount[0]):
-                        art, highest = create_and_roll_artifact("domain", highest)
+                        art, highest = create_and_roll_artifact("domain", absolute_generated, highest)
                         low, high, days_it_took_to_reach_desired_cv, artifacts_generated, flag = compare_to_highest_cv(art, low, high,
                                                                                                                        days_it_took_to_reach_desired_cv, artifacts_generated,
                                                                                                                        day, total_generated, cv_desired, sample_size_is_one)
@@ -451,7 +459,7 @@ while True:
                         inventory -= 2
                         total_generated += 1
                         absolute_generated += 1
-                        art, highest = create_and_roll_artifact("strongbox", highest)
+                        art, highest = create_and_roll_artifact("strongbox", absolute_generated, highest)
                         low, high, days_it_took_to_reach_desired_cv, artifacts_generated, flag = compare_to_highest_cv(art, low, high,
                                                                                                                        days_it_took_to_reach_desired_cv, artifacts_generated,
                                                                                                                        day, total_generated, cv_desired, sample_size_is_one)
