@@ -503,6 +503,7 @@ for i in range(sample_size):
             while inventory >= 3:
                 # print(f'strongbox {inventory}')
                 inventory -= 2
+                total_generated += 1
                 art, highest = create_and_roll_artifact("strongbox", highest, cv_desired, day)
                 low, high, days_it_took_to_reach_desired_cv, artifacts_generated, flag = compare_to_highest_cv(art, low,
                                                                                                                high,
@@ -531,6 +532,7 @@ to_hours = time.strftime("%T", time.gmtime(run_time))
 decimals = f'{(run_time % 1):.3f}'
 print()
 print(f'The simulation{"s" if sample_size > 1 else ""} took {to_hours}:{str(decimals)[2:]} ({run_time:.3f} seconds)')
+print(f'Performance: {round(sum(artifacts_generated) / run_time / 1000, 2)} artifacts per ms')
 print()
 
 for i in dict_of_days_total:
